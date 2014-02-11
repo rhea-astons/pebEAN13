@@ -7,7 +7,7 @@ static TextLayer *tl_name;
 static char code[13] = "9782940199617";
 static int binaryCode[95];
 
-int pattern[10][6] = {
+int ean13Pattern[10][6] = {
     {0, 0, 0, 0, 0, 0},   // 0
     {0, 0, 1, 0, 1, 1},   // 1
     {0, 0, 1, 1, 0, 1},   // 2
@@ -20,7 +20,7 @@ int pattern[10][6] = {
     {0, 1, 1, 0, 1, 0}    // 9
   };
 
-int abBars[2][10][7] = {
+int pixelsPattern[3][10][7] = {
   {
     {0, 0, 0, 1, 1, 0, 1},    // 0
     {0, 0, 1, 1, 0, 0, 1},    // 1
@@ -44,10 +44,8 @@ int abBars[2][10][7] = {
     {0, 0, 1, 0, 0, 0, 1},    // 7
     {0, 0, 0, 1, 0, 0, 1},    // 8
     {0, 0, 1, 0, 1, 1, 1}     // 9
-  }
-};
-
-int cBars[10][7] = {
+  },
+  {
     {1, 1, 1, 0, 0, 1, 0},    // 0
     {1, 1, 0, 0, 1, 1, 0},    // 1
     {1, 1, 0, 1, 1, 0, 0},    // 2
@@ -58,25 +56,34 @@ int cBars[10][7] = {
     {1, 0, 0, 0, 1, 0, 0},    // 7
     {1, 0, 0, 1, 0, 0, 0},    // 8
     {1, 1, 1, 0, 1, 0, 0}     // 9
+  }
 };
 
-static void ean2Bin() {
-  int first = code[0] - '0';
+
+static void ean2bin() {
+  int firstDigit = code[0] - '0';
+
   int digitPos;
   int digit;
   int i;
+
+  // Start segments
   binaryCode[0] = 1;
   binaryCode[1] = 0;
   binaryCode[2] = 1;
   int resPos = 3;
+
+  // Segments for first part
   for (digitPos = 1; digitPos < 7; ++digitPos)
   {
     digit = code[digitPos] - '0';
     for (i = 0; i < 7; i++) {
-      binaryCode[resPos] = abBars[pattern[first][digitPos-1]][digit][i];
+      binaryCode[resPos] = pixelsPattern[ean13Pattern[firstDigit][digitPos-1]][digit][i];
       resPos++;
     }
   }
+
+  // Medium segments
   binaryCode[resPos] = 0;
   resPos++;
   binaryCode[resPos] = 1;
@@ -87,13 +94,17 @@ static void ean2Bin() {
   resPos++;
   binaryCode[resPos] = 0;
   resPos++;
+
+  // Segments for second part
   for (digitPos = 7; digitPos < 13; ++digitPos) {
     digit = code[digitPos] - '0';
     for (i = 0; i < 7; i++) {
-      binaryCode[resPos] = cBars[digit][i];
+      binaryCode[resPos] = pixelsPattern[2][digit][i];
       resPos++;
     }
   }
+
+  // Stop segments
   binaryCode[resPos] = 1;
   resPos++;
   binaryCode[resPos] = 0;
@@ -128,8 +139,9 @@ static void window_unload(Window *window) {
   text_layer_destroy(tl_digits);
 }
 
+
 static void init(void) {
-  ean2Bin();
+  ean2bin();
   window = window_create();
   window_set_window_handlers(window, (WindowHandlers) {
     .load = window_load,
